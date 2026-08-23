@@ -1,0 +1,54 @@
+# A plant, a gateway, a scraper and a dashboard.
+#
+#   docker compose up
+#   open http://localhost:3000
+#
+# Nothing here needs hardware, a licence or a Siemens account.
+
+services:
+  plc:
+    build: .
+    image: ghcr.io/poseidonas/s7-sim:latest
+    container_name: s7sim-plc
+    ports:
+      # Host 10102 rather than 102, so it needs no privileges. Map 102:1102
+      # instead if you want to reach it on the port S7 clients expect.
+      - "10102:1102"
+
+  gateway:
+    image: python:3.12-slim
+    container_name: s7sim-gateway
+    depends_on:
+      plc:
+        condition: service_healthy
+    volumes:
+      - ./examples/gateway.yml:/etc/s7-gateway/config.yml:ro
+    command: >
+      sh -c "pip install --quiet --root-user-action=ignore s7-gateway &&
+             s7-gateway --config /etc/s7-gateway/config.yml --host 0.0.0.0 --port 8080"
+    ports:
+      # 8088 on the host, 8080 inside: 8080 is a busy port on a developer
+      # machine and a demo that fails to start is worse than an odd number.
+      - "8088:8080"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: s7sim-prometheus
+    depends_on: [gateway]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: s7sim-grafana
+    depends_on: [prometheus]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"

@@ -1,0 +1,9 @@
+include LICENSE
+include README.md
+include Dockerfile
+include compose.yml
+recursive-include examples *.yml
+recursive-include tests *.py
+recursive-include prometheus *.yml
+recursive-include grafana *.yml *.json
+prune src/*.egg-info

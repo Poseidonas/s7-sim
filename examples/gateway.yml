@@ -1,0 +1,17 @@
+# What s7-gateway reads from the simulator. The addresses are the ones in
+# examples/line.yml, which is the point: the simulator lays out a block the way
+# a plant would, and the gateway is configured against it unchanged.
+plcs:
+  filling_line:
+    host: plc
+    port: 1102
+    rack: 0
+    slot: 1
+    tags:
+      running:          {db: 10, offset: 0,  type: bool, bit: 0}
+      stopped_for:      {db: 10, offset: 2,  type: real, unit: s}
+      filler_temp:      {db: 10, offset: 6,  type: real, unit: "°C", description: Filler jacket temperature}
+      bottles_filled:   {db: 10, offset: 10, type: dint}
+      bottles_rejected: {db: 10, offset: 14, type: dint}
+      line_speed:       {db: 10, offset: 18, type: int, unit: bottles/min, writable: true}
+      target_temp:      {db: 10, offset: 20, type: real, unit: "°C", writable: true}

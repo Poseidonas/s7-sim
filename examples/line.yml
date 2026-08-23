@@ -1,0 +1,63 @@
+# A filling and packing line, of the shape a food plant runs.
+#
+# Addresses are laid out the way a standard-access data block is: every tag
+# names its own offset, and nothing overlaps.
+
+line:
+  mean_run_minutes: 12     # average time between stops
+  mean_stop_minutes: 3     # average length of a stop
+  seed: 1                  # the same seed gives the same day, every time
+
+plc:
+  rack: 0
+  slot: 1
+  port: 102
+  tick_seconds: 0.5        # how often the values are refreshed
+
+blocks:
+  10:
+    tags:
+      running:
+        offset: 0
+        bit: 0
+        type: bool
+        behaviour: running
+
+      stopped_for:
+        offset: 2
+        type: real
+        behaviour: stopped_for
+
+      filler_temp:
+        offset: 6
+        type: real
+        behaviour: temperature
+        running: 74.0        # settles here while producing
+        idle: 21.5           # and falls back to here when stopped
+        tau: 180             # seconds to cover 63% of the gap
+        noise: 0.3
+
+      bottles_filled:
+        offset: 10
+        type: dint
+        behaviour: counter
+        per_minute: 420
+
+      bottles_rejected:
+        offset: 14
+        type: dint
+        behaviour: counter
+        per_minute: 420
+        fraction: 0.017      # 1.7% of what was filled
+
+      line_speed:
+        offset: 18
+        type: int
+        behaviour: setpoint  # the simulator writes this once, then leaves it
+        value: 420
+
+      target_temp:
+        offset: 20
+        type: real
+        behaviour: setpoint
+        value: 74.0

@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[test]"
+      - name: ruff
+        run: ruff check src tests
+      - name: pytest
+        run: pytest -q
+
+  stack:
+    # The point of this project is that the whole stack comes up on its own, so
+    # that is what CI checks: a green unit suite would not catch a broken
+    # compose file, a wrong port or a dashboard that provisions but has no data.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bring the stack up
+        run: docker compose up -d --build
+
+      - name: the gateway reads the simulated line
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf localhost:8088/health && break
+            sleep 3
+          done
+          curl -sf localhost:8088/plcs/filling_line/values | tee /tmp/values.json
+          grep -q '"tag":"bottles_filled"' /tmp/values.json
+
+      - name: the counters advance
+        run: |
+          first=$(curl -sf localhost:8088/plcs/filling_line/tags/bottles_filled | sed 's/.*"value":\([0-9]*\).*/\1/')
+          sleep 20
+          second=$(curl -sf localhost:8088/plcs/filling_line/tags/bottles_filled | sed 's/.*"value":\([0-9]*\).*/\1/')
+          echo "$first -> $second"
+          test "$second" -gt "$first"
+
+      - name: prometheus has the metrics
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf 'localhost:9090/api/v1/query?query=s7_up' | grep -q '"value"' && break
+            sleep 3
+          done
+          curl -sf 'localhost:9090/api/v1/query?query=s7_tag_value' | grep -q bottles_filled
+
+      - name: grafana has the dashboard
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf localhost:3000/api/health | grep -q '"database": *"ok"' && break
+            sleep 3
+          done
+          curl -sf localhost:3000/api/search | grep -q s7sim-line
+
+      - name: logs on failure
+        if: failure()
+        run: docker compose logs

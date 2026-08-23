@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s7-sim"
+version = "0.1.0"
+description = "A simulated Siemens S7 line you can run in a container"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "George Vasiliades" }]
+keywords = ["siemens", "s7", "plc", "snap7", "simulator", "industrial", "testing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Emulators",
+]
+dependencies = ["python-snap7>=3.1", "PyYAML>=6.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "ruff>=0.4"]
+
+[project.scripts]
+s7-sim = "s7sim.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Poseidonas/s7-sim"
+Repository = "https://github.com/Poseidonas/s7-sim"
+Issues = "https://github.com/Poseidonas/s7-sim/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "B", "UP", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
