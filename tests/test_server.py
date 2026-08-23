@@ -77,11 +77,21 @@ def test_a_simulated_tag_is_put_back_after_a_write(client):
     assert abs(after - before) < 30
 
 
-def test_the_block_a_client_reads_is_the_one_the_simulator_writes(simulator, client):
-    from_client = bytes(client.db_read(10, 0, 12))
-    from_server = bytes(simulator.buffer(10))
+def test_the_block_a_client_reads_is_the_one_the_simulator_writes(free_port):
+    """The refresh is held off for the length of this check.
 
-    assert from_client == from_server
+    With a tick running, the two reads below straddle it and compare different
+    moments, which is a race in the test rather than a fault in the simulator.
+    """
+    plant = loads(PLANT.replace("tick_seconds: 0.1", "tick_seconds: 3600"))
+    with Simulator(plant, host="127.0.0.1", port=free_port) as sim:
+        time.sleep(0.3)
+        c = snap7.client.Client()
+        c.connect("127.0.0.1", 0, 1, sim.port)
+        try:
+            assert bytes(c.db_read(10, 0, 12)) == bytes(sim.buffer(10))
+        finally:
+            c.disconnect()
 
 
 def test_refreshing_to_an_explicit_time_is_reproducible(free_port):
