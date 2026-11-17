@@ -5,4 +5,4 @@ from .line import Line, Stop
 from .server import Simulator
 
 __all__ = ["Block", "Line", "Plant", "Simulator", "Stop", "Tag", "load", "loads"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
